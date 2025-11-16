@@ -47,6 +47,31 @@ func (s *Store) Set(key, value string) (int64, error) {
 	return s.version, nil
 }
 
+// SetWithVersion stores a value with a specific version (used for replication)
+// Updates the global version counter if the provided version is higher
+func (s *Store) SetWithVersion(key, value string, version int64) error {
+	if key == "" {
+		return ErrEmptyKey
+	}
+
+	s.mu.Lock()
+	defer s.mu.Unlock()
+
+	// Update global version if this version is higher
+	if version > s.version {
+		s.version = version
+	}
+
+	kv := &KeyValue{
+		Key:     key,
+		Value:   value,
+		Version: version,
+	}
+	s.data[key] = kv
+
+	return nil
+}
+
 // Get retrieves the value for the given key
 // Returns the KeyValue and a boolean indicating if the key exists
 func (s *Store) Get(key string) (*KeyValue, bool) {
