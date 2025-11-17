@@ -1,4 +1,32 @@
+# Binaries
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+kv-service
+leader-follower
+leaderless
+loadtester
 
+# Test binary
+*.test
 
+# Output of the go coverage tool
+*.out
 
+# Dependency directories
+vendor/
 
+# Go workspace file
+go.work
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
