@@ -1,0 +1,32 @@
+{
+  "config": "Leader-Follower W=5 R=1 (10% writes, 90% reads) - SAMPLE DATA",
+  "total_requests": 1000,
+  "total_writes": 100,
+  "total_reads": 900,
+  "successful_requests": 950,
+  "failed_requests": 50,
+  "stale_reads": 90,
+  "write_latency": {
+    "min_ms": 800.0,
+    "max_ms": 1800.0,
+    "mean_ms": 1200.0,
+    "median_ms": 1180.0,
+    "p50_ms": 1180.0,
+    "p95_ms": 1600.0,
+    "p99_ms": 1750.0,
+    "p999_ms": 1790.0
+  },
+  "read_latency": {
+    "min_ms": 20.0,
+    "max_ms": 100.0,
+    "mean_ms": 50.0,
+    "median_ms": 48.0,
+    "p50_ms": 48.0,
+    "p95_ms": 75.0,
+    "p99_ms": 90.0,
+    "p999_ms": 98.0
+  },
+  "start_time": "2025-11-16T15:54:42.086949Z",
+  "end_time": "2025-11-16T15:55:42.089593Z",
+  "duration": "60s"
+}

@@ -4,10 +4,6 @@
 *.dll
 *.so
 *.dylib
-kv-service
-leader-follower
-leaderless
-loadtester
 
 # Test binary
 *.test
@@ -32,3 +28,5 @@ go.work
 Thumbs.db
 
 phase_summaries/
+
+preps/

@@ -1,0 +1,13 @@
+{
+  "name": "Leader-Follower W=3 R=3 (90% writes, 10% reads)",
+  "target_addr": "localhost:8080",
+  "write_ratio": 0.90,
+  "read_ratio": 0.10,
+  "num_keys": 1000,
+  "key_cluster_size": 10
+}
+
+
+
+
+
