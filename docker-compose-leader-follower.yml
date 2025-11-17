@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  leader:
+    build:
+      context: .
+      dockerfile: Dockerfile.leader-follower
+    command: ["./leader-follower", "--node-id=leader1", "--role=leader", "--leader-addr=leader:8080", "--follower-addrs=follower1:8080,follower2:8080,follower3:8080,follower4:8080", "--port=8080"]
+    ports:
+      - "8080:8080"
+    environment:
+      - MY_ADDR=leader:8080
+    networks:
+      - kv-network
+
+  follower1:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["./leader-follower", "--node-id=follower1", "--role=follower", "--leader-addr=leader:8080", "--follower-addrs=follower1:8080,follower2:8080,follower3:8080,follower4:8080", "--port=8080"]
+    ports:
+      - "8081:8080"
+    environment:
+      - MY_ADDR=follower1:8080
+    networks:
+      - kv-network
+    depends_on:
+      - leader
+
+  follower2:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["./leader-follower", "--node-id=follower2", "--role=follower", "--leader-addr=leader:8080", "--follower-addrs=follower1:8080,follower2:8080,follower3:8080,follower4:8080", "--port=8080"]
+    ports:
+      - "8082:8080"
+    environment:
+      - MY_ADDR=follower2:8080
+    networks:
+      - kv-network
+    depends_on:
+      - leader
+
+  follower3:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["./leader-follower", "--node-id=follower3", "--role=follower", "--leader-addr=leader:8080", "--follower-addrs=follower1:8080,follower2:8080,follower3:8080,follower4:8080", "--port=8080"]
+    ports:
+      - "8083:8080"
+    environment:
+      - MY_ADDR=follower3:8080
+    networks:
+      - kv-network
+    depends_on:
+      - leader
+
+  follower4:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    command: ["./leader-follower", "--node-id=follower4", "--role=follower", "--leader-addr=leader:8080", "--follower-addrs=follower1:8080,follower2:8080,follower3:8080,follower4:8080", "--port=8080"]
+    ports:
+      - "8084:8080"
+    environment:
+      - MY_ADDR=follower4:8080
+    networks:
+      - kv-network
+    depends_on:
+      - leader
+
+networks:
+  kv-network:
+    driver: bridge
+

@@ -1,0 +1,75 @@
+version: '3.8'
+
+services:
+  node1:
+    build:
+      context: .
+      dockerfile: Dockerfile.leaderless
+    command: ["./leaderless", "--node-id=node1", "--all-node-addrs=node1:8080,node2:8080,node3:8080,node4:8080,node5:8080", "--port=8080"]
+    ports:
+      - "8080:8080"
+    environment:
+      - MY_ADDR=node1:8080
+    networks:
+      - kv-network
+
+  node2:
+    build:
+      context: .
+      dockerfile: Dockerfile.leaderless
+    command: ["./leaderless", "--node-id=node2", "--all-node-addrs=node1:8080,node2:8080,node3:8080,node4:8080,node5:8080", "--port=8080"]
+    ports:
+      - "8081:8080"
+    environment:
+      - MY_ADDR=node2:8080
+    networks:
+      - kv-network
+    depends_on:
+      - node1
+
+  node3:
+    build:
+      context: .
+      dockerfile: Dockerfile.leaderless
+    command: ["./leaderless", "--node-id=node3", "--all-node-addrs=node1:8080,node2:8080,node3:8080,node4:8080,node5:8080", "--port=8080"]
+    ports:
+      - "8082:8080"
+    environment:
+      - MY_ADDR=node3:8080
+    networks:
+      - kv-network
+    depends_on:
+      - node1
+
+  node4:
+    build:
+      context: .
+      dockerfile: Dockerfile.leaderless
+    command: ["./leaderless", "--node-id=node4", "--all-node-addrs=node1:8080,node2:8080,node3:8080,node4:8080,node5:8080", "--port=8080"]
+    ports:
+      - "8083:8080"
+    environment:
+      - MY_ADDR=node4:8080
+    networks:
+      - kv-network
+    depends_on:
+      - node1
+
+  node5:
+    build:
+      context: .
+      dockerfile: Dockerfile.leaderless
+    command: ["./leaderless", "--node-id=node5", "--all-node-addrs=node1:8080,node2:8080,node3:8080,node4:8080,node5:8080", "--port=8080"]
+    ports:
+      - "8084:8080"
+    environment:
+      - MY_ADDR=node5:8080
+    networks:
+      - kv-network
+    depends_on:
+      - node1
+
+networks:
+  kv-network:
+    driver: bridge
+
