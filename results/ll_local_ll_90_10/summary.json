@@ -1,0 +1,37 @@
+{
+  "config": "Leaderless W=5 R=1 (90% writes, 10% reads)",
+  "total_requests": 2159,
+  "total_writes": 1923,
+  "total_reads": 236,
+  "successful_requests": 2140,
+  "failed_requests": 19,
+  "success_rate_percent": 99.11996294580825,
+  "error_rate_percent": 0.8800370541917555,
+  "stale_reads": 0,
+  "stale_read_rate_percent": 0,
+  "successful_reads": 217,
+  "stale_read_rate_of_successful_percent": 0,
+  "write_latency": {
+    "min_ms": 302.672375,
+    "max_ms": 332.37075,
+    "mean_ms": 312.20472866614705,
+    "median_ms": 311.834584,
+    "p50_ms": 311.834584,
+    "p95_ms": 319.806834,
+    "p99_ms": 325.026125,
+    "p999_ms": 332.224292
+  },
+  "read_latency": {
+    "min_ms": 0.419458,
+    "max_ms": 10.019583,
+    "mean_ms": 2.640184714285714,
+    "median_ms": 2.266167,
+    "p50_ms": 2.266167,
+    "p95_ms": 5.684542,
+    "p99_ms": 8.857625,
+    "p999_ms": 10.019583
+  },
+  "start_time": "2025-11-27T15:59:10.491175-08:00",
+  "end_time": "2025-11-27T16:00:10.443434-08:00",
+  "duration": "59.952522166s"
+}

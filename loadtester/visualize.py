@@ -26,7 +26,7 @@ def load_csv(csv_path):
             records.append(row)
     return records
 
-def plot_latency_distribution(records, output_path, config_name):
+def plot_latency_distribution(records, output_path, config_name, summary=None):
     """Plot latency distribution for reads and writes."""
     read_latencies = []
     write_latencies = []
@@ -46,10 +46,15 @@ def plot_latency_distribution(records, output_path, config_name):
         ax1.hist(read_latencies, bins=50, alpha=0.7, color='blue', edgecolor='black')
         ax1.set_xlabel('Latency (ms)')
         ax1.set_ylabel('Frequency')
-        ax1.set_title(f'Read Latency Distribution\n{config_name}')
+        title = f'Read Latency Distribution\n{config_name}'
+        if summary:
+            stale_rate = summary.get('stale_read_rate_of_successful_percent', 0)
+            title += f'\nStale Reads: {stale_rate:.2f}% of successful reads'
+        ax1.set_title(title)
         ax1.grid(True, alpha=0.3)
-        ax1.axvline(np.percentile(read_latencies, 95), color='red', linestyle='--', label='P95')
-        ax1.axvline(np.percentile(read_latencies, 99), color='orange', linestyle='--', label='P99')
+        if len(read_latencies) > 0:
+            ax1.axvline(np.percentile(read_latencies, 95), color='red', linestyle='--', label='P95')
+            ax1.axvline(np.percentile(read_latencies, 99), color='orange', linestyle='--', label='P99')
         ax1.legend()
     else:
         ax1.text(0.5, 0.5, 'No read data', ha='center', va='center')
@@ -60,10 +65,15 @@ def plot_latency_distribution(records, output_path, config_name):
         ax2.hist(write_latencies, bins=50, alpha=0.7, color='green', edgecolor='black')
         ax2.set_xlabel('Latency (ms)')
         ax2.set_ylabel('Frequency')
-        ax2.set_title(f'Write Latency Distribution\n{config_name}')
+        title = f'Write Latency Distribution\n{config_name}'
+        if summary:
+            error_rate = summary.get('error_rate_percent', 0)
+            title += f'\nError Rate: {error_rate:.2f}%'
+        ax2.set_title(title)
         ax2.grid(True, alpha=0.3)
-        ax2.axvline(np.percentile(write_latencies, 95), color='red', linestyle='--', label='P95')
-        ax2.axvline(np.percentile(write_latencies, 99), color='orange', linestyle='--', label='P99')
+        if len(write_latencies) > 0:
+            ax2.axvline(np.percentile(write_latencies, 95), color='red', linestyle='--', label='P95')
+            ax2.axvline(np.percentile(write_latencies, 99), color='orange', linestyle='--', label='P99')
         ax2.legend()
     else:
         ax2.text(0.5, 0.5, 'No write data', ha='center', va='center')
@@ -136,6 +146,7 @@ def main():
     
     # Load summary for config name
     config_name = "Unknown"
+    summary = None
     if summary_path.exists():
         summary = load_summary(summary_path)
         config_name = summary.get('config', 'Unknown')
@@ -147,8 +158,17 @@ def main():
     latency_plot = results_dir / "latency_distribution.png"
     interval_plot = results_dir / "time_intervals.png"
     
-    plot_latency_distribution(records, latency_plot, config_name)
+    plot_latency_distribution(records, latency_plot, config_name, summary)
     plot_time_intervals(records, interval_plot, config_name)
+    
+    # Print summary statistics
+    if summary:
+        print(f"\n=== Summary Statistics ===")
+        print(f"Total Requests: {summary.get('total_requests', 0)}")
+        print(f"Success Rate: {summary.get('success_rate_percent', 0):.2f}%")
+        print(f"Error Rate: {summary.get('error_rate_percent', 0):.2f}%")
+        print(f"Stale Reads: {summary.get('stale_reads', 0)} ({summary.get('stale_read_rate_of_successful_percent', 0):.2f}% of successful reads)")
+        print(f"Successful Reads: {summary.get('successful_reads', 0)}")
     
     print(f"\nVisualizations created in: {results_dir}")
 

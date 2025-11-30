@@ -52,7 +52,12 @@ type Summary struct {
 	TotalReads          int       `json:"total_reads"`
 	SuccessfulRequests  int       `json:"successful_requests"`
 	FailedRequests      int       `json:"failed_requests"`
+	SuccessRate         float64   `json:"success_rate_percent"`
+	ErrorRate           float64   `json:"error_rate_percent"`
 	StaleReads          int       `json:"stale_reads"`
+	StaleReadRate       float64   `json:"stale_read_rate_percent"`
+	SuccessfulReads     int       `json:"successful_reads"`
+	StaleReadRateOfSuccessful float64 `json:"stale_read_rate_of_successful_percent"`
 	WriteLatency        LatencyStats `json:"write_latency"`
 	ReadLatency         LatencyStats `json:"read_latency"`
 	StartTime           time.Time `json:"start_time"`
@@ -95,6 +100,7 @@ func (c *Collector) GetSummary() Summary {
 	successfulRequests := 0
 	failedRequests := 0
 	staleReads := 0
+	successfulReads := 0
 
 	for _, record := range c.records {
 		if startTime.IsZero() || record.Timestamp.Before(startTime) {
@@ -120,6 +126,7 @@ func (c *Collector) GetSummary() Summary {
 		} else if record.Type == "read" {
 			totalReads++
 			if record.Success {
+				successfulReads++
 				readLatencies = append(readLatencies, latencyMs)
 			}
 			if record.IsStale {
@@ -128,18 +135,41 @@ func (c *Collector) GetSummary() Summary {
 		}
 	}
 
+	// Calculate rates
+	successRate := 0.0
+	errorRate := 0.0
+	if totalRequests > 0 {
+		successRate = float64(successfulRequests) / float64(totalRequests) * 100.0
+		errorRate = float64(failedRequests) / float64(totalRequests) * 100.0
+	}
+
+	staleReadRate := 0.0
+	staleReadRateOfSuccessful := 0.0
+	if totalReads > 0 {
+		staleReadRate = float64(staleReads) / float64(totalReads) * 100.0
+	}
+	if successfulReads > 0 {
+		staleReadRateOfSuccessful = float64(staleReads) / float64(successfulReads) * 100.0
+	}
+
 	return Summary{
-		TotalRequests:      totalRequests,
-		TotalWrites:        totalWrites,
-		TotalReads:         totalReads,
-		SuccessfulRequests: successfulRequests,
-		FailedRequests:     failedRequests,
-		StaleReads:         staleReads,
-		WriteLatency:       computeLatencyStats(writeLatencies),
-		ReadLatency:         computeLatencyStats(readLatencies),
-		StartTime:          startTime,
-		EndTime:            endTime,
-		Duration:           endTime.Sub(startTime).String(),
+		Config:                      "",
+		TotalRequests:               totalRequests,
+		TotalWrites:                 totalWrites,
+		TotalReads:                  totalReads,
+		SuccessfulRequests:          successfulRequests,
+		FailedRequests:              failedRequests,
+		SuccessRate:                 successRate,
+		ErrorRate:                   errorRate,
+		StaleReads:                  staleReads,
+		StaleReadRate:               staleReadRate,
+		SuccessfulReads:             successfulReads,
+		StaleReadRateOfSuccessful:   staleReadRateOfSuccessful,
+		WriteLatency:                computeLatencyStats(writeLatencies),
+		ReadLatency:                 computeLatencyStats(readLatencies),
+		StartTime:                   startTime,
+		EndTime:                     endTime,
+		Duration:                    endTime.Sub(startTime).String(),
 	}
 }
 

@@ -7,6 +7,8 @@ import (
 	"io"
 	"net/http"
 	"time"
+
+	"github.com/yourusername/distributed-kv-store/internal/vectorclock"
 )
 
 // ReplicationClient handles communication between nodes
@@ -25,9 +27,10 @@ func NewReplicationClient() *ReplicationClient {
 
 // ReplicateWriteRequest represents a write replication request
 type ReplicateWriteRequest struct {
-	Key     string `json:"key"`
-	Value   string `json:"value"`
-	Version int64  `json:"version"`
+	Key        string                      `json:"key"`
+	Value      string                      `json:"value"`
+	Version    int64                       `json:"version"`
+	VectorClock map[string]int64           `json:"vector_clock,omitempty"` // Map for JSON serialization
 }
 
 // ReplicateWriteResponse represents a write replication response
@@ -39,11 +42,19 @@ type ReplicateWriteResponse struct {
 
 // ReplicateWrite sends a write request to another node
 // Returns the response and any error
-func (c *ReplicationClient) ReplicateWrite(addr string, key string, value string, version int64, addDelay bool) (*ReplicateWriteResponse, error) {
+func (c *ReplicationClient) ReplicateWrite(addr string, key string, value string, version int64, vc vectorclock.VectorClock, addDelay bool) (*ReplicateWriteResponse, error) {
 	reqBody := ReplicateWriteRequest{
 		Key:     key,
 		Value:   value,
 		Version: version,
+	}
+	
+	// Convert vector clock to map for JSON
+	if vc != nil {
+		reqBody.VectorClock = make(map[string]int64)
+		for k, v := range vc {
+			reqBody.VectorClock[k] = v
+		}
 	}
 
 	jsonData, err := json.Marshal(reqBody)

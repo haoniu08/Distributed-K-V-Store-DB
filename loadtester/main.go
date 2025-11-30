@@ -6,6 +6,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math/rand"
 	"os"
 	"sync"
 	"time"
@@ -50,8 +51,21 @@ func main() {
 	// Create request generator
 	reqGen := generator.NewRequestGenerator(keyGen, config.WriteRatio, config.ReadRatio)
 
-	// Track versions for stale read detection
-	versionTracker := sync.Map{} // key -> latest known version
+	// Get target addresses (support both single and multiple)
+	targetAddrs := config.TargetAddrs
+	if len(targetAddrs) == 0 && config.TargetAddr != "" {
+		targetAddrs = []string{config.TargetAddr}
+	}
+	if len(targetAddrs) == 0 {
+		log.Fatal("No target addresses specified (use target_addr or target_addrs)")
+	}
+
+	// Track versions and write coordinators for stale read detection
+	versionTracker := sync.Map{}        // key -> latest known version
+	coordinatorTracker := sync.Map{}     // key -> node address that handled the write
+	
+	// Random number generator for node selection
+	rand.Seed(time.Now().UnixNano())
 
 	// Start load test
 	log.Printf("Starting load test:")
@@ -59,7 +73,7 @@ func main() {
 	log.Printf("  Duration: %v", *duration)
 	log.Printf("  Concurrency: %d workers", *concurrency)
 	log.Printf("  Write ratio: %.1f%%, Read ratio: %.1f%%", config.WriteRatio*100, config.ReadRatio*100)
-	log.Printf("  Target: %s", config.TargetAddr)
+	log.Printf("  Target nodes: %v", targetAddrs)
 
 	startTime := time.Now()
 	endTime := startTime.Add(*duration)
@@ -90,7 +104,7 @@ func main() {
 				if time.Now().After(endTime) {
 					break
 				}
-				processRequest(workerID, req, config, httpClient, statsCollector, &versionTracker)
+				processRequest(workerID, req, config, targetAddrs, httpClient, statsCollector, &versionTracker, &coordinatorTracker)
 			}
 		}(i)
 	}
@@ -118,25 +132,55 @@ func processRequest(
 	workerID int,
 	req generator.Request,
 	config *Config,
+	targetAddrs []string,
 	httpClient *client.LoadTestClient,
 	statsCollector *stats.Collector,
 	versionTracker *sync.Map,
+	coordinatorTracker *sync.Map,
 ) {
 	startTime := time.Now()
 	var err error
 	var response *client.Response
 	var isStale bool
+	var targetAddr string
 
 	if req.Type == generator.RequestTypeWrite {
-		// Write request
-		response, err = httpClient.Write(config.TargetAddr, req.Key, req.Value)
+		// Write request: randomly select a node (that node becomes coordinator)
+		// Use random selection to distribute writes across all nodes
+		targetAddr = targetAddrs[rand.Intn(len(targetAddrs))]
+		response, err = httpClient.Write(targetAddr, req.Key, req.Value)
 		if err == nil {
-			// Update version tracker
+			// Update version tracker and coordinator
 			versionTracker.Store(req.Key, response.Version)
+			coordinatorTracker.Store(req.Key, targetAddr)
 		}
 	} else {
-		// Read request
-		response, err = httpClient.Read(config.TargetAddr, req.Key)
+		// Read request: prefer a different node than the coordinator to detect stale reads
+		coordinatorAddr, hasCoordinator := coordinatorTracker.Load(req.Key)
+		
+		if hasCoordinator && len(targetAddrs) > 1 {
+			// Try to read from a different node than the coordinator
+			coordinator := coordinatorAddr.(string)
+			// Collect all non-coordinator nodes
+			otherNodes := make([]string, 0, len(targetAddrs)-1)
+			for _, addr := range targetAddrs {
+				if addr != coordinator {
+					otherNodes = append(otherNodes, addr)
+				}
+			}
+			// Randomly select from other nodes (80% chance) or coordinator (20% chance)
+			// This ensures we mostly read from different nodes but occasionally from coordinator
+			if len(otherNodes) > 0 && rand.Float64() < 0.8 {
+				targetAddr = otherNodes[rand.Intn(len(otherNodes))]
+			} else {
+				targetAddr = coordinator
+			}
+		} else {
+			// No coordinator yet, or only one node, use random node
+			targetAddr = targetAddrs[rand.Intn(len(targetAddrs))]
+		}
+		
+		response, err = httpClient.Read(targetAddr, req.Key)
 		if err == nil {
 			// Check for stale read
 			if storedVersion, ok := versionTracker.Load(req.Key); ok {
@@ -144,7 +188,7 @@ func processRequest(
 					isStale = true
 				}
 			}
-			// Update version tracker
+			// Update version tracker (but not coordinator - coordinator stays the same)
 			versionTracker.Store(req.Key, response.Version)
 		}
 	}
@@ -235,11 +279,12 @@ func exportResults(outputDir string, config *Config, statsCollector *stats.Colle
 
 // Config represents load test configuration
 type Config struct {
-	Name         string  `json:"name"`
-	TargetAddr   string  `json:"target_addr"`
-	WriteRatio   float64 `json:"write_ratio"`   // 0.0 to 1.0
-	ReadRatio    float64 `json:"read_ratio"`    // 0.0 to 1.0
-	NumKeys      int     `json:"num_keys"`       // Total number of keys
-	KeyClusterSize int   `json:"key_cluster_size"` // Keys per cluster for local-in-time
+	Name         string   `json:"name"`
+	TargetAddr   string   `json:"target_addr"`   // Single address (for backward compatibility)
+	TargetAddrs  []string `json:"target_addrs"`  // Multiple addresses (for leaderless mode)
+	WriteRatio   float64  `json:"write_ratio"`   // 0.0 to 1.0
+	ReadRatio    float64  `json:"read_ratio"`    // 0.0 to 1.0
+	NumKeys      int      `json:"num_keys"`       // Total number of keys
+	KeyClusterSize int    `json:"key_cluster_size"` // Keys per cluster for local-in-time
 }
 

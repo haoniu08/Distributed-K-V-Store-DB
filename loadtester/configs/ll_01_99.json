@@ -1,6 +1,12 @@
 {
   "name": "Leaderless W=5 R=1 (1% writes, 99% reads)",
-  "target_addr": "localhost:8080",
+  "target_addrs": [
+    "localhost:8080",
+    "localhost:8081",
+    "localhost:8082",
+    "localhost:8083",
+    "localhost:8084"
+  ],
   "write_ratio": 0.01,
   "read_ratio": 0.99,
   "num_keys": 1000,

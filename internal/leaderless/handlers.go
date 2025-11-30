@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/yourusername/distributed-kv-store/internal/kvstore"
+	"github.com/yourusername/distributed-kv-store/internal/vectorclock"
 )
 
 // Handler provides HTTP handlers for Leaderless database
@@ -120,8 +121,28 @@ func (h *Handler) ReplicateWriteHandler(w http.ResponseWriter, r *http.Request) 
 	// Node sleeps 100ms when receiving update before responding
 	time.Sleep(100 * time.Millisecond)
 
-	// Set the value with the provided version
-	if err := h.store.SetWithVersion(req.Key, req.Value, req.Version); err != nil {
+	// Convert map to vector clock if present
+	var vc vectorclock.VectorClock
+	if req.VectorClock != nil && len(req.VectorClock) > 0 {
+		vc = make(vectorclock.VectorClock)
+		for k, v := range req.VectorClock {
+			vc[k] = v
+		}
+	}
+
+	// Set the value with the provided version and vector clock
+	var err error
+	if vc != nil {
+		err = h.store.SetWithVersionAndClock(req.Key, req.Value, req.Version, vc)
+		// Update local clock AFTER accepting the write (receive event)
+		if err == nil && h.replicator != nil {
+			h.replicator.UpdateClock(vc)
+		}
+	} else {
+		err = h.store.SetWithVersion(req.Key, req.Value, req.Version)
+	}
+	
+	if err != nil {
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(ReplicateWriteResponse{
